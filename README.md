@@ -118,9 +118,17 @@ $$\mathcal{L}\_{pde} = \frac{1}{M} \sum_{j=1}^{M} \left( f_{\text{pde}}(x_j, t_j
 
 最后，PINNS的Loss函数由DataLoss和PEDLoss相加得到。
 # 五、结果
-可视化预测的loss如图所示：![[loss.png]]
-可视化预测结果的热力图如下：![[heatmap.png]]
-可视化计算结果的时间线图如下：![[linemap.png]]
+可视化预测的loss如图所示：
+
+![image](https://github.com/WoBiGaoSiQiangYiDian/Solving-Convection-Diffusion-Equation-with-PINNs/blob/main/image/loss.png)
+
+可视化预测结果的热力图如下：
+
+![image](https://github.com/WoBiGaoSiQiangYiDian/Solving-Convection-Diffusion-Equation-with-PINNs/blob/main/image/heatmap.png)
+
+可视化计算结果的时间线图如下：
+
+![image](https://github.com/WoBiGaoSiQiangYiDian/Solving-Convection-Diffusion-Equation-with-PINNs/blob/main/image/linemap.png)
 
 
 
