@@ -7,9 +7,17 @@ A homework for AI-framework in BUAA.
 
 ### 一、对流扩散方程的基本形式
 其通用形式为：
+
 $$
 \frac{\partial c}{\partial t} + \nabla \cdot (\mathbf{u} c) = \nabla \cdot (D \nabla c) + S
-$$或者写作：$$\frac{\partial c}{\partial t} + \mathbf{u}_x\frac{\partial c}{\partial x} +\mathbf{u}_y\frac{\partial c}{\partial y}+\mathbf{u}_z\frac{\partial c}{\partial z} = D(\frac{\partial^2 c}{\partial x^2}+\frac{\partial^2 c}{\partial y^2}+\frac{\partial^2 c}{\partial z^2}) + S$$
+$$
+
+或者写作：
+
+$$
+\frac{\partial c}{\partial t} + \mathbf{u}_x\frac{\partial c}{\partial x} +\mathbf{u}_y\frac{\partial c}{\partial y}+\mathbf{u}_z\frac{\partial c}{\partial z} = D(\frac{\partial^2 c}{\partial x^2}+\frac{\partial^2 c}{\partial y^2}+\frac{\partial^2 c}{\partial z^2}) + S
+$$
+
 其中：
 - $c$：浓度（或温度、动量等物理量）；
 - $\mathbf{u}$：流体速度场（对流项）；
@@ -17,11 +25,13 @@ $$或者写作：$$\frac{\partial c}{\partial t} + \mathbf{u}_x\frac{\partial c}
 - $S$：源项（如化学反应生成或消耗的物质）。
 
 **简化形式**（一维非稳态无源项）：
+
 $$
 \frac{\partial c}{\partial t} + u \frac{\partial c}{\partial x} = D \frac{\partial^2 c}{\partial x^2}
 $$
-- 对流项（$u \frac{\partial c}{\partial x}$）描述流体运动导致的物质输运；
-- 扩散项（$D \frac{\partial^2 c}{\partial x^2}$）描述浓度梯度驱动的分子扩散。
+
+- 对流项（$`u \frac{\partial c}{\partial x}`$）描述流体运动导致的物质输运；
+- 扩散项（$`D \frac{\partial^2 c}{\partial x^2}`$）描述浓度梯度驱动的分子扩散。
 
 ---
 
@@ -37,7 +47,7 @@ $$
    - **动量传递**：不可压缩流体的动量方程（如Navier-Stokes方程，可视为特殊的对流扩散方程）。
 
 3. **按数学性质**：
-   - **线性**：若系数（如$u, D$）与浓度无关；
+   - **线性**：若系数（如$`u, D`$）与浓度无关；
    - **非线性**：若系数依赖于浓度（如湍流扩散或非牛顿流体）。
 
 ---
@@ -47,19 +57,19 @@ $$
 
 **建模步骤**：
 1. **控制方程**：采用一维对流扩散方程：
-   $$
-   \frac{\partial c}{\partial t} + u \frac{\partial c}{\partial x} = D \frac{\partial^2 c}{\partial x^2}
-   $$
-   其中$u$为河流流速，$D$为污染物的扩散系数。
 
-2. **初始条件**：$t=0$时，污染物集中在排放点（如$c(x,0) = M \delta(x)$，$M$为总质量，$\delta$为狄拉克函数）。
+   $$\frac{\partial c}{\partial t} + u \frac{\partial c}{\partial x} = D \frac{\partial^2 c}{\partial x^2}$$
+   
+   其中$`u`$为河流流速，$`D`$为污染物的扩散系数。
 
-3. **边界条件**：上游无污染物（$c(-\infty, t)=0$），下游自由扩散（$c(\infty, t)=0$）。
+3. **初始条件**：$`t=0`$时，污染物集中在排放点（如$`c(x,0) = M \delta(x)`$，$`M`$为总质量，$`\delta`$为狄拉克函数）。
 
-4. **解析解**（稳态时）：
-   $$
-   c(x) = \frac{M}{\sqrt{4 \pi D x/u}} \exp\left(-\frac{u x}{4 D}\right)
-   $$
+4. **边界条件**：上游无污染物（$`c(-\infty, t)=0`$），下游自由扩散（$`c(\infty, t)=0`$）。
+
+5. **解析解**（稳态时）：
+
+   $$c(x) = \frac{M}{\sqrt{4 \pi D x/u}} \exp\left(-\frac{u x}{4 D}\right)$$
+   
    表明浓度随距离呈指数衰减，扩散使污染范围扩展。
 
 **意义**：该模型可指导污染物排放控制，评估环境风险，或设计监测点位置。
