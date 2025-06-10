@@ -1,80 +1,78 @@
-# Solving-Convection-Diffusion-Equation-with-PINNs
-A homework for AI-framework in BUAA.
-对流扩散方程是描述物质在流体中因**对流**（流体运动引起的输运）和**扩散**（浓度梯度驱动的分子运动）共同作用下浓度分布规律的偏微分方程。它是质量、热量或动量传递分析的核心工具之一。
-对流扩散方程是一种用于描述物质在流体中同时受到对流和扩散作用而发生传输的偏微分方程。对流是指由于流体的宏观运动而引起的物质输送过程，例如河水流动时携带泥沙运动；扩散是一种微观过程，是物质从高浓度区域向低浓度区域自发地进行的分子运动，就像一滴红墨水滴入清水中，会逐渐扩散开来。
-
----
-
-### 一、对流扩散方程的基本形式
-其通用形式为：
-
+# 一、对流扩散方程
+对流扩散方程（convection diffusion equation）具有以下的形式:
 $$
-\frac{\partial c}{\partial t} + \nabla \cdot (\mathbf{u} c) = \nabla \cdot (D \nabla c) + S
-$$
-
-或者写作：
-
-$$
-\frac{\partial c}{\partial t} + \mathbf{u}_x\frac{\partial c}{\partial x} +\mathbf{u}_y\frac{\partial c}{\partial y}+\mathbf{u}_z\frac{\partial c}{\partial z} = D(\frac{\partial^2 c}{\partial x^2}+\frac{\partial^2 c}{\partial y^2}+\frac{\partial^2 c}{\partial z^2}) + S
-$$
-
-其中：
+\frac{\partial c}{\partial t} + u \frac{\partial c}{\partial x} = D \frac{\partial^2 c}{\partial x^2}
+$$或写作：$$u_t + c u_x - D u_{xx}=0$$其中：
 - $c$：浓度（或温度、动量等物理量）；
 - $\mathbf{u}$：流体速度场（对流项）；
 - $D$：扩散系数（扩散项）；
-- $S$：源项（如化学反应生成或消耗的物质）。
+- 对流项（$u \frac{\partial c}{\partial x}$）描述流体运动导致的物质输运；
+- 扩散项（$D \frac{\partial^2 c}{\partial x^2}$）描述浓度梯度驱动的分子扩散。
+如下图所示：
+![[对流扩散问题示意图.png]]
+图中是一个3D空间中的扩散示意图，在t=0.5时，物质在空间中的浓度如图所示。
+## 物理条件
+本次研究旨在解决对流扩散方程的某一特定物理情景，由于对流扩散方程适用于众多物理问题，故本研究只聚焦于一种物理情形，并且在该物理条件下，在方程的边界点和内部通过随机采样的方式得到训练集，条件如下：
+### 1. 空间域和时间域
+- 空间：$x \in [0, 1]$
+- 时间：$t \in [0, 1]$
+### 2. 初始条件
+在$t=0$时，初始分布为高斯函数：$$u(x, 0) = e^{-10x^2}$$这表示在$x = 0$附近有一个初始浓度峰值（或热量集中）。
+### 3. 边界条件
+- 左边界$x = 0$：$u(0, t) = 1$
+- 右边界$x = 1$：$u(1, t) = 0$
+这代表一种物理情景：**左边持续注入浓度为1的物质，右边自由扩散至0浓度**。
+### 4. 参数设置
+- $c = 0.5$：对流速度（convection coefficient）；
+- $D = 0.01$：扩散系数（diffusion coefficient）。
 
-**简化形式**（一维非稳态无源项）：
+在物理世界中，上述条件常常存在于如下情境：
+- 热传导问题（热源在左边）
+- 污染物输运问题（左边持续排放，右边自然清除）
+# 二、数据集
+在PINNs中，**训练数据集**和**验证数据集**的划分方式与传统监督学习有所不同。PINNs不依赖大量真实标签数据，而是通过**物理方程（PDE）和少量边界/初始条件数据**共同构建损失函数进行训练。下面具体说明：
+## 1. 训练数据
+训练数据由两个部分组成：
+### 第一部分 **边界条件 & 初始条件点（BC&IC）**——有监督训练数据
+这是代码中 `self.X_train` 和 `self.y_train` 的部分，代表网络应该在这些点上**精确拟合已知解值**。其构造方式如下：
+#### 初始条件 (IC):
+`ic = np.stack(np.meshgrid(x_bc_res, [self.t_min], indexing='ij')).reshape(2, -1).T`
+- 在$t=0$的全体$x \in [0, 1]$上采样了 50 个点。
+- 标签为：$$u(x, 0) = e^{-10x^2}$$
+#### 边界条件 (BC):
+`bc1 = np.stack(np.meshgrid([self.x_min], t_bc_res, indexing='ij')).reshape(2, -1).T bc2 = np.stack(np.meshgrid([self.x_max], t_bc_res, indexing='ij')).reshape(2, -1).T`
+- 左边界$x=0$，取不同时间点$t \in [0, 1]$，共采样 50 个点，标签为$u(0,t)=1$。
+- 右边界$x=1$，共采样50个点，标签为$u(1,t)=0$。
+最终将三类点合并为训练输入`X_train`和对应标签`y_train`：
 
-$$
-\frac{\partial c}{\partial t} + u \frac{\partial c}{\partial x} = D \frac{\partial^2 c}{\partial x^2}
-$$
+### 第二部分 **PDE 约束点（无标签）**——无监督方程残差点
+`x_train_pde_res = np.linspace(self.x_min, self.x_max, 100) t_train_pde_res = np.linspace(self.t_min, self.t_max, 100) pde_points_x, pde_points_t = np.meshgrid(x_train_pde_res, t_train_pde_res, indexing='ij') self.pde_points = Tensor(np.stack([pde_points_x.flatten(), pde_points_t.flatten()], axis=1), mindspore.float32)`
+- 在整个$(x, t) \in [0, 1] \times [0, 1]$的区域上，生成$100 \times 100 = 10000$个均匀采样点。
+- 这些点没有标签，但在这些点上，模型预测的结果应**满足 PDE 方程残差为 0**：$$f_{\text{PDE}}(x, t) = u_t + c u_x - D u_{xx} \approx 0$$**这些数据用于“物理损失”（PDE Loss），约束模型符合对流扩散方程。**
+## 2. 验证方法
+PINNs求解PDE不是使用传统意义的验证集。PINNs 的训练过程依赖于：
+- 有标签的边界条件、初始条件；
+- 方程残差作为正则化。
+验证效果的评估通过**可视化模型预测**（`plot_results()`）的方式间接完成。
+# 四、模型训练与推理
+## 1. 网络结构
+本次实验使用了一个**全连接前馈神经网络（Feedforward Neural Network，简称 FNN）**，具体结构如下：
 
-- 对流项（$`u \frac{\partial c}{\partial x}`$）描述流体运动导致的物质输运；
-- 扩散项（$`D \frac{\partial^2 c}{\partial x^2}`$）描述浓度梯度驱动的分子扩散。
+|层编号|类型|输入维度|输出维度|激活函数|
+|---|---|---|---|---|
+|1|`Dense(2, 20)`|2|20|Tanh|
+|2|`Dense(20, 20)`|20|20|Tanh|
+|3|`Dense(20, 20)`|20|20|Tanh|
+|4|`Dense(20, 1)`|20|1|无|
+## 2. Loss
+对于PINNs来说，其独特的Loss构建方式使得其能够在解决PDE上发挥作用，本次实验的Loss函数由2部分构成，分别是**DataLoss**和**PDELoss**，具体形式如下：
+- **DataLoss**：来自初始条件(IC)和边界条件(BC)：$$\mathcal{L}_{data} = \frac{1}{N} \sum_{i=1}^{N} \left( u_{\text{pred}}(x_i, t_i) - u_{\text{true}}(x_i, t_i) \right)^2$$
+- **PDELoss**:基于 PDE 方程：$$u_t + c u_x - D u_{xx} = 0$$定义物理残差为：$$f_{\text{pde}} = u_t + c u_x - D u_{xx}$$残差损失为：$$\mathcal{L}_{pde} = \frac{1}{M} \sum_{j=1}^{M} \left( f_{\text{pde}}(x_j, t_j) \right)^2$$
+最后，PINNS的Loss函数由DataLoss和PEDLoss相加得到。
+# 五、结果
+可视化预测的loss如图所示：![[loss.png]]
+可视化预测结果的热力图如下：![[heatmap.png]]
+可视化计算结果的时间线图如下：![[linemap.png]]
 
----
 
-### 二、分类与变体
-1. **按物理过程**：
-   - **纯扩散方程**：忽略对流项（如静止流体中的扩散）；
-   - **纯对流方程**：忽略扩散项（如理想流体中物质的随流输运）；
-   - **对流-扩散耦合方程**：同时包含对流和扩散项。
 
-2. **按应用场景**：
-   - **质量传递**：污染物在大气或水体中的迁移；
-   - **热量传递**：流体中温度分布的演化（此时方程称为对流-热传导方程）；
-   - **动量传递**：不可压缩流体的动量方程（如Navier-Stokes方程，可视为特殊的对流扩散方程）。
-
-3. **按数学性质**：
-   - **线性**：若系数（如$`u, D`$）与浓度无关；
-   - **非线性**：若系数依赖于浓度（如湍流扩散或非牛顿流体）。
-
----
-
-### 三、应用案例：污染物在河流中的扩散
-**问题描述**：假设某工厂向河流中持续排放污染物，需预测下游污染物浓度分布。
-
-**建模步骤**：
-1. **控制方程**：采用一维对流扩散方程：
-
-   $$\frac{\partial c}{\partial t} + u \frac{\partial c}{\partial x} = D \frac{\partial^2 c}{\partial x^2}$$
-   
-   其中$`u`$为河流流速，$`D`$为污染物的扩散系数。
-
-3. **初始条件**：$`t=0`$时，污染物集中在排放点（如$`c(x,0) = M \delta(x)`$，$`M`$为总质量，$`\delta`$为狄拉克函数）。
-
-4. **边界条件**：上游无污染物（$`c(-\infty, t)=0`$），下游自由扩散（$`c(\infty, t)=0`$）。
-
-5. **解析解**（稳态时）：
-
-   $$c(x) = \frac{M}{\sqrt{4 \pi D x/u}} \exp\left(-\frac{u x}{4 D}\right)$$
-   
-   表明浓度随距离呈指数衰减，扩散使污染范围扩展。
-
-**意义**：该模型可指导污染物排放控制，评估环境风险，或设计监测点位置。
-
----
-
-### 四、总结
-对流扩散方程通过结合对流与扩散机制，广泛应用于环境工程、气象学、化学反应工程等领域。其核心思想是基于守恒定律（质量、能量或动量）建立微分方程，通过解析或数值方法求解实际问题。
