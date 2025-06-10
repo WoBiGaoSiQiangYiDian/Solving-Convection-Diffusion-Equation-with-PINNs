@@ -17,7 +17,8 @@ $$u_t + c u_x - D u_{xx}=0$$
 - 扩散项（$`D \frac{\partial^2 c}{\partial x^2}`$）描述浓度梯度驱动的分子扩散。
 
 如下图所示：
-![[对流扩散问题示意图.png]]
+
+![image](https://github.com/WoBiGaoSiQiangYiDian/Solving-Convection-Diffusion-Equation-with-PINNs/blob/main/image/%E5%AF%B9%E6%B5%81%E6%89%A9%E6%95%A3%E9%97%AE%E9%A2%98%E7%A4%BA%E6%84%8F%E5%9B%BE.png)
 
 图中是一个3D空间中的扩散示意图，在t=0.5时，物质在空间中的浓度如图所示。
 ## 物理条件
